@@ -550,7 +550,7 @@ if __name__ == '__main__':
             plt.plot(rds, p[0]+p[1]*rds, 'k-')
             plt.plot(rds_m, pm[0]+pm[1]*rds_m, 'b-')
         plt.tight_layout()
-        os.makedirs(os.path.join(bp_local, "cutouts", "results"), exist_ok=True)
+        os.makedirs(os.path.join(bp_local, "cutouts", "results "), exist_ok=True)
         plt.savefig(bp_local+'/cutouts/results/'+str(idx)+'.png', format='png',dpi=200)
         
         print('Galno  log(M_10_40)       t_50(Gyr)           t_90(Gyr)')
