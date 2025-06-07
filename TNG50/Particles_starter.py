@@ -356,7 +356,9 @@ if __name__ == '__main__':
 
 
     # Primary loop, modified to start from the last known index
-    for i in range(1, len(mw_like)):
+    # for i in range(1, len(mw_like)):
+    for i in range(1,2):
+        print("Iteration:", i)
         # The current index
         idx = mw_like[i]
 
@@ -435,8 +437,8 @@ if __name__ == '__main__':
             plt.ylim(-50,50)
 
             if fname[len(fname)-9:len(fname)-5] == "edge":
-                plt.plot(coordinates_rot[~a1,2],coordinates_rot[~a1,0],',', alpha=0.6)    
-                plt.plot(coordinates_rot[a1,2],coordinates_rot[a1,0],',', alpha=0.1)    
+                plt.plot(coordinates_rot[~a1,2],coordinates_rot[~a1,0],',', alpha=0.6)
+                plt.plot(coordinates_rot[a1,2],coordinates_rot[a1,0],',', alpha=0.1)
             else:
                 plt.plot(coordinates_rot[~a1,2],coordinates_rot[~a1,1],',', alpha=0.6)    
                 plt.plot(coordinates_rot[a1,2],coordinates_rot[a1,1],',', alpha=0.1)   
@@ -509,8 +511,13 @@ if __name__ == '__main__':
                 plt.subplot(142)
                 plt.xlim(-50,50)
                 plt.ylim(-50,50)
-                hb = plt.hexbin(coordinates_rot[~a1,2],coordinates_rot[~a1,0], C=velocities_rot[~a1,1], gridsize=100, reduce_C_function=np.median, cmap='viridis', alpha=0.6)
+                if fname[len(fname)-9:len(fname)-5] == "edge":
+                    hb = plt.hexbin(coordinates_rot[~a1,2],coordinates_rot[~a1,0], C=velocities_rot[~a1,1], gridsize=100, reduce_C_function=np.median, cmap='viridis', alpha=0.6)
+                else:
+                    hb = plt.hexbin(coordinates_rot[~a1,2],coordinates_rot[~a1,1], C=velocities_rot[~a1,0], gridsize=100, reduce_C_function=np.median, cmap='viridis', alpha=0.6)
                 plt.colorbar(hb, label='Median Velocity')
+
+
                 maj_35 = ((coordinates_rot[~a1,2]>30)&
                             (coordinates_rot[~a1,2]<40)&
                             (abs(coordinates_rot[~a1,0])<widthbin/2.0))
@@ -569,6 +576,7 @@ if __name__ == '__main__':
             # plt.savefig(bp_local+'/cutouts/results/'+str(idx)+'.png', format='png',dpi=200)
             os.makedirs(os.path.join(galaxy_output, "results"), exist_ok=True)
             plt.savefig(galaxy_output+'/results/'+str(idx)+'_'+fname[len(fname)-9:len(fname)-5]+'.png', format='png',dpi=200)
+            print("Iteration Complete")
 
 
             
