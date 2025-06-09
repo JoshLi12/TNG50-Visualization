@@ -376,22 +376,23 @@ if __name__ == '__main__':
 
 
     # Primary loop, modified to start from the last known index
-    for i in range(1, len(mw_like)):
-        print("Iteration:", i)
-        status = input("Continue? (y/n): ")
-        if status == "n":
-            break
+    # for i in range(1, len(mw_like)):
+        # print("Iteration:", i)
+        # status = input("Continue? (y/n): ")
+        # if status == "n":
+        #     break
         # The current index
-        idx = mw_like[i]
+    angle_degrees = 0
+    while angle_degrees <= 360:
+        idx = 333426
 
         galaxy_output = os.path.join(bp_local, "individual_inspect", str(idx))
         os.makedirs(galaxy_output, exist_ok=True)
 
         theta = 90 # degrees from Z
         phi = 0 # degrees from X
-        angle_degrees = 90
+        # angle_degrees = 90
         angle = np.deg2rad(angle_degrees)
-        print(angle)
 
         subfindID0=idx
         a1,a2,a3=create_tags(subfindID0,basePath+'/output/')
@@ -603,6 +604,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.join(galaxy_output, "results"), exist_ok=True)
         plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle_degrees) +'.png', format='png',dpi=200)
         print("Iteration Complete")
+        angle_degrees += 30
 
 
             
