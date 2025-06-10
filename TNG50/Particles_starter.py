@@ -389,7 +389,9 @@ if __name__ == '__main__':
 
     theta = 90 # degrees from Z / changes left and right angles
     phi = 45 # degrees from X / changes up and down angles
-    angle_degrees = 180 # changes rotation around axis defined by theta and phi
+    # phi = 45 is edge on
+    angle_degrees = 30 # changes rotation around axis defined by theta and phi
+
     angle = np.deg2rad(angle_degrees)
 
     subfindID0=idx
