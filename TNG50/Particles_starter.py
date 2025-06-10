@@ -382,16 +382,16 @@ if __name__ == '__main__':
         # if status == "n":
         #     break
         # The current index
-    angle_degrees = 0
-    while angle_degrees <= 360:
+    phi = 0
+    while phi <= 360:
         idx = 333426
 
         galaxy_output = os.path.join(bp_local, "individual_inspect", str(idx))
         os.makedirs(galaxy_output, exist_ok=True)
 
         theta = 90 # degrees from Z
-        phi = 0 # degrees from X
-        # angle_degrees = 90
+        # phi = 0 # degrees from X
+        angle_degrees = 180
         angle = np.deg2rad(angle_degrees)
 
         subfindID0=idx
@@ -604,7 +604,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.join(galaxy_output, "results"), exist_ok=True)
         plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle_degrees) +'.png', format='png',dpi=200)
         print("Iteration Complete")
-        angle_degrees += 30
+        phi += 30
 
 
             
