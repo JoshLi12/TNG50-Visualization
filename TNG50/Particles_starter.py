@@ -16,6 +16,9 @@ from scipy.signal import savgol_filter
 from scipy.signal import argrelextrema
 from matplotlib.colors import to_hex
 from scipy.spatial.transform import Rotation as R
+from multiprocessing import Process, Pipe
+
+
 
 
 bp_data = r"N:\TNG50"   # Mounted drive with illustris_python and data
@@ -328,7 +331,24 @@ def rotation_matrix(axis, angle_rad):
         [z*x*C - y*s, z*y*C + x*s, c + z*z*C    ]
     ])
 
-if __name__ == '__main__':
+def get_galaxy_coords(base_path, subfind_id, h0=0.6774, theta=0, phi=0, angle=0):
+    theta_rad = np.deg2rad(theta)
+    phi_rad = np.deg2rad(phi)
+    angle_rad = np.deg2rad(angle)
+
+    axis = pol_to_cart(theta_rad, phi_rad)
+    Rview = rotation_matrix(axis, angle_rad)
+
+    fname = f"{base_path}/individual_inspect/{subfind_id}/cutout_{subfind_id}.hdf5"
+    with h5py.File(fname, 'r') as h5f:
+        coords = h5f['PartType4']['Coordinates'][:]/h0
+
+    coords -= np.median(coords, axis=0)
+
+    # Optional: rotate to galaxy frame (you can skip if already aligned)
+    return coords @ Rview.T
+
+if __name__ != '__main__':
     basePath = bp_data#+'output'
     h0=0.6774
     G0=4.3e-6     # in units of kpc Msun^-1 (km/s)^2
@@ -377,7 +397,7 @@ if __name__ == '__main__':
     rds = np.array([15,25,35])
     rds_m = np.array([20,30,40])
 
-
+    
     # for i in range(1, len(mw_like)):
     inp = "y"
     count = 1
@@ -464,20 +484,20 @@ if __name__ == '__main__':
             coordinates_dm_rot[j,:]=np.inner(coordinates_dm[j,:],v0)
             velocities_dm_rot[j,:]=np.inner(velocities_dm[j,:],v0)
 
-        # GRAPH 1 - STELLAR ORIGIN GRAPH
-        plt.figure(figsize=(12,3))
-        plt.subplot(141)
-        plt.xlim(-50,50)
-        plt.ylim(-50,50)
+        # # GRAPH 1 - STELLAR ORIGIN GRAPH
+        # plt.figure(figsize=(12,3))
+        # plt.subplot(141)
+        # plt.xlim(-50,50)
+        # plt.ylim(-50,50)
 
-        view_dir_world = pol_to_cart(theta_rad, phi_rad)
+        # view_dir_world = pol_to_cart(theta_rad, phi_rad)
 
-        axis = view_dir_world @ v0  # direction you want to view from
-        R = rotation_matrix(axis, angle_rad)
-        newProj = coordinates_rot @ R.T
+        # axis = view_dir_world @ v0  # direction you want to view from
+        # R = rotation_matrix(axis, angle_rad)
+        # newProj = coordinates_rot @ R.T
 
-        plt.plot(newProj[~a1,2],newProj[~a1,1],',', alpha=0.6)
-        plt.plot(newProj[a1,2],newProj[a1,1],',', alpha=0.1)
+        # plt.plot(newProj[~a1,2],newProj[~a1,1],',', alpha=0.6)
+        # plt.plot(newProj[a1,2],newProj[a1,1],',', alpha=0.1)
 
         # Work out 10-40 minor axis profile
         # minor axis is either plus y or minus y with this rotated coordinate system
@@ -543,12 +563,12 @@ if __name__ == '__main__':
 
             rplt = np.arange(10,41,1)
 
-            # Velocities
-            plt.subplot(142)
-            plt.xlim(-50,50)
-            plt.ylim(-50,50)
-            hb = plt.hexbin(coordinates_rot[~a1,2],coordinates_rot[~a1,0], C=velocities_rot[~a1,1], gridsize=100, reduce_C_function=np.median, cmap='viridis', alpha=0.6)
-            plt.colorbar(hb, label='Median Velocity')
+            # # Velocities
+            # plt.subplot(142)
+            # plt.xlim(-50,50)
+            # plt.ylim(-50,50)
+            # hb = plt.hexbin(coordinates_rot[~a1,2],coordinates_rot[~a1,0], C=velocities_rot[~a1,1], gridsize=100, reduce_C_function=np.median, cmap='viridis', alpha=0.6)
+            # plt.colorbar(hb, label='Median Velocity')
 
 
             maj_35 = ((coordinates_rot[~a1,2]>30)&
@@ -558,33 +578,35 @@ if __name__ == '__main__':
                 v_35 = np.percentile(velocities_rot[~a1,1][maj_35], [16, 50, 84])
             # Work out an alternative for fitting the binned profiles. Minor axis first
             # Added 4 in quadrature to place a limit of +/-2 on the density profile error. 
-            plt.subplot(143)
-            n_min = np.histogram(coordinates_rot[~a1,0][tenforty_acc_min],bins=6,range=[10,40])
-            if (len(n_min[0][n_min[0]>0])>=2):
-                densprof = n_min[0]/(widthbin*30/6)
-                ddensprof = np.sqrt(n_min[0]+4)/(widthbin*30/6)
-                a_fit, cov = curve_fit(PowerLaw, (0.5*(n_min[1][1:]+n_min[1][:-1])/25), densprof, sigma = ddensprof)
-                alpha_acc_min = np.array([a_fit[1]-np.sqrt(cov[1,1]),a_fit[1],a_fit[1]+np.sqrt(cov[1,1])])
-                plt.plot(np.log10(0.5*(n_min[1][1:]+n_min[1][:-1])),np.log10(densprof),'ro')
-                plt.plot(np.log10(rplt),np.log10(a_fit[0]*(rplt/25)**a_fit[1]),'r-')
-            # Major axis (projected edge on)
-            n_maj = np.histogram(coordinates_rot[~a1,2][tenforty_acc_maj],bins=6,range=[10,40])
-            if (len(n_maj[0][n_maj[0]>0])>=2):
-                densprof_maj = n_maj[0]/(widthbin*30/6)
-                ddensprof_maj = np.sqrt(n_maj[0]+4)/(widthbin*30/6)
-                a_fit_maj, cov_maj = curve_fit(PowerLaw, (0.5*(n_maj[1][1:]+n_maj[1][:-1])/25), densprof_maj, sigma = ddensprof_maj)
-                alpha_acc_maj = np.array([a_fit_maj[1]-np.sqrt(cov_maj[1,1]),a_fit_maj[1],a_fit_maj[1]+np.sqrt(cov_maj[1,1])])
-                plt.plot(np.log10(0.5*(n_maj[1][1:]+n_maj[1][:-1])),np.log10(densprof_maj),'go')
-                plt.plot(np.log10(rplt),np.log10(a_fit_maj[0]*(rplt/25)**a_fit_maj[1]),'g-')
-            # Major axis (face on)
-            n_maj2 = np.histogram(np.sqrt(coordinates_rot[~a1,2][fifteenforty_acc_maj]**2+coordinates_rot[~a1,1][fifteenforty_acc_maj]**2),bins=6,range=[15,40])
-            if (len(n_maj2[0][n_maj2[0]>0])>=2):
-                densprof_maj2 = n_maj2[0]/(2.0*np.pi*0.5*(n_maj2[1][1:]+n_maj2[1][:-1])*25/6)
-                ddensprof_maj2 = np.sqrt(n_maj2[0]+4)/(2.0*np.pi*0.5*(n_maj2[1][1:]+n_maj2[1][:-1])*25/6)
-                a_fit_maj2, cov_maj2 = curve_fit(PowerLaw, (0.5*(n_maj2[1][1:]+n_maj2[1][:-1])/25), densprof_maj2, sigma = ddensprof_maj2)
-                alpha_acc_maj2 = np.array([a_fit_maj2[1]-np.sqrt(cov_maj2[1,1]),a_fit_maj2[1],a_fit_maj2[1]+np.sqrt(cov_maj2[1,1])])
-                plt.plot(np.log10(0.5*(n_maj2[1][1:]+n_maj2[1][:-1])),np.log10(densprof_maj2),'b*')
-                plt.plot(np.log10(rplt),np.log10(a_fit_maj2[0]*(rplt/25)**a_fit_maj2[1]),'b-')
+            # plt.subplot(143)
+            # n_min = np.histogram(coordinates_rot[~a1,0][tenforty_acc_min],bins=6,range=[10,40])
+            # if (len(n_min[0][n_min[0]>0])>=2):
+            #     densprof = n_min[0]/(widthbin*30/6)
+            #     ddensprof = np.sqrt(n_min[0]+4)/(widthbin*30/6)
+            #     a_fit, cov = curve_fit(PowerLaw, (0.5*(n_min[1][1:]+n_min[1][:-1])/25), densprof, sigma = ddensprof)
+            #     alpha_acc_min = np.array([a_fit[1]-np.sqrt(cov[1,1]),a_fit[1],a_fit[1]+np.sqrt(cov[1,1])])
+            #     plt.plot(np.log10(0.5*(n_min[1][1:]+n_min[1][:-1])),np.log10(densprof),'ro')
+            #     plt.plot(np.log10(rplt),np.log10(a_fit[0]*(rplt/25)**a_fit[1]),'r-')
+            # # Major axis (projected edge on)
+            # n_maj = np.histogram(coordinates_rot[~a1,2][tenforty_acc_maj],bins=6,range=[10,40])
+            # if (len(n_maj[0][n_maj[0]>0])>=2):
+            #     densprof_maj = n_maj[0]/(widthbin*30/6)
+            #     ddensprof_maj = np.sqrt(n_maj[0]+4)/(widthbin*30/6)
+            #     a_fit_maj, cov_maj = curve_fit(PowerLaw, (0.5*(n_maj[1][1:]+n_maj[1][:-1])/25), densprof_maj, sigma = ddensprof_maj)
+            #     alpha_acc_maj = np.array([a_fit_maj[1]-np.sqrt(cov_maj[1,1]),a_fit_maj[1],a_fit_maj[1]+np.sqrt(cov_maj[1,1])])
+            #     plt.plot(np.log10(0.5*(n_maj[1][1:]+n_maj[1][:-1])),np.log10(densprof_maj),'go')
+            #     plt.plot(np.log10(rplt),np.log10(a_fit_maj[0]*(rplt/25)**a_fit_maj[1]),'g-')
+            # # Major axis (face on)
+            # n_maj2 = np.histogram(np.sqrt(coordinates_rot[~a1,2][fifteenforty_acc_maj]**2+coordinates_rot[~a1,1][fifteenforty_acc_maj]**2),bins=6,range=[15,40])
+            # if (len(n_maj2[0][n_maj2[0]>0])>=2):
+            #     densprof_maj2 = n_maj2[0]/(2.0*np.pi*0.5*(n_maj2[1][1:]+n_maj2[1][:-1])*25/6)
+            #     ddensprof_maj2 = np.sqrt(n_maj2[0]+4)/(2.0*np.pi*0.5*(n_maj2[1][1:]+n_maj2[1][:-1])*25/6)
+            #     a_fit_maj2, cov_maj2 = curve_fit(PowerLaw, (0.5*(n_maj2[1][1:]+n_maj2[1][:-1])/25), densprof_maj2, sigma = ddensprof_maj2)
+            #     alpha_acc_maj2 = np.array([a_fit_maj2[1]-np.sqrt(cov_maj2[1,1]),a_fit_maj2[1],a_fit_maj2[1]+np.sqrt(cov_maj2[1,1])])
+            #     plt.plot(np.log10(0.5*(n_maj2[1][1:]+n_maj2[1][:-1])),np.log10(densprof_maj2),'b*')
+            #     plt.plot(np.log10(rplt),np.log10(a_fit_maj2[0]*(rplt/25)**a_fit_maj2[1]),'b-')
+
+
             # Calculate axis ratio following Harmsen
     #        avdens = 0.5*(np.log10(len(coordinates_rot[~a1,0][tenforty_acc_min])*25.0**alpha_acc_min[i,1]) + 
     #                  np.log10(len(coordinates_rot[~a1,2][tenforty_acc_maj])*25.0**alpha_acc_maj[i,1]))
@@ -607,9 +629,9 @@ if __name__ == '__main__':
         plt.tight_layout()
         # os.makedirs(os.path.join(bp_local, "cutouts", "results"), exist_ok=True)
         # plt.savefig(bp_local+'/cutouts/results/'+str(idx)+'.png', format='png',dpi=200)
-        os.makedirs(os.path.join(galaxy_output, "results"), exist_ok=True)
+        # os.makedirs(os.path.join(galaxy_output, "results"), exist_ok=True)
         # plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) +'.png', format='png',dpi=200)
-        plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle) +'.png', format='png',dpi=200)
+        # plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle) +'.png', format='png',dpi=200)
         print("Iteration Complete")
         inp = input("Continue? (y/n): ")
 
