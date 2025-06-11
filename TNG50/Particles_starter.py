@@ -614,6 +614,7 @@ if __name__ == '__main__':
                 # plt.savefig(bp_local+'/cutouts/results/'+str(idx)+'.png', format='png',dpi=200)
                 os.makedirs(os.path.join(galaxy_output, "results"), exist_ok=True)
                 plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle_degrees) +'.png', format='png',dpi=200)
+                print("Theta: " + str(theta) + " | Phi: " + str(phi) + "Angle Rotation: " + str(angle_degrees))
                 angle_degrees += 45
             phi += 45
         theta += 45
