@@ -378,24 +378,28 @@ if __name__ == '__main__':
     rds_m = np.array([20,30,40])
 
 
-    for i in range(1, len(mw_like)):
-        print("Iteration:", i)
-        status = input("Continue? (y/n): ")
-        if status == "n":
-            break
+    # for i in range(1, len(mw_like)):
+    inp = "y"
+    count = 1
+    while inp == "y":
+        print("Iteration:", count)
+        
         # The current index
-        idx = mw_like[i]
+        idx = 333426
 
         galaxy_output = os.path.join(bp_local, "individual_inspect", str(idx))
         os.makedirs(galaxy_output, exist_ok=True)
 
-        theta = 0
-        phi = 0
-        angle = 0
+        theta = int(input("Theta: "))
+        phi = int(input("Phi: "))
+        angle = int(input("Angle: "))
+        # theta = 0
+        # phi = 0
+        # angle = 0
 
-        theta_rad = np.deg2rad(90)
-        phi_rad = np.deg2rad(0)
-        angle_rad = np.deg2rad(180)
+        theta_rad = np.deg2rad(theta)
+        phi_rad = np.deg2rad(phi)
+        angle_rad = np.deg2rad(angle)
 
         subfindID0=idx
 
@@ -466,7 +470,9 @@ if __name__ == '__main__':
         plt.xlim(-50,50)
         plt.ylim(-50,50)
 
-        axis = pol_to_cart(theta_rad, phi_rad)  # direction you want to view from
+        view_dir_world = pol_to_cart(theta_rad, phi_rad)
+
+        axis = view_dir_world @ v0  # direction you want to view from
         R = rotation_matrix(axis, angle_rad)
         newProj = coordinates_rot @ R.T
 
@@ -605,6 +611,7 @@ if __name__ == '__main__':
         # plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) +'.png', format='png',dpi=200)
         plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle) +'.png', format='png',dpi=200)
         print("Iteration Complete")
+        inp = input("Continue? (y/n): ")
 
 
 
