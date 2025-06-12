@@ -1,4 +1,4 @@
-from Particles_starter import get_galaxy_coords
+from rot_coords import get_galaxy_coords
 
 coords = get_galaxy_coords(
     base_path="N:/TNG50",
