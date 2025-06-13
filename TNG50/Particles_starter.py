@@ -51,6 +51,8 @@ from sklearn.model_selection import train_test_split
 from astropy.io import ascii
 from io import BytesIO
 
+from helper import *
+
 #from matplotlib import rcParams
 # matplotlib style settings
 plt.rcParams["font.family"] = "Times New Roman"
@@ -110,36 +112,32 @@ if __name__ == '__main__':
     rds_m = np.array([20,30,40])
 
     
-    # for i in range(1, len(mw_like)):
-    inp = "y"
-    count = 1
-    while inp == "y":
-        print("Iteration:", count)
+    for i in range(1, len(mw_like)):
         
         # The current index
-        idx = 333426
+        idx = mw_like[i]
 
-        galaxy_output = os.path.join(bp_local, "individual_inspect", str(idx))
-        os.makedirs(galaxy_output, exist_ok=True)
+        dest = os.path.join(bp_local, "galaxy_render_base", str(idx))
+        os.makedirs(dest, exist_ok=True)
 
-        theta = int(input("Theta: "))
-        phi = int(input("Phi: "))
-        angle = int(input("Angle: "))
+        # theta = int(input("Theta: "))
+        # phi = int(input("Phi: "))
+        # angle = int(input("Angle: "))
         # theta = 0
         # phi = 0
         # angle = 0
 
-        theta_rad = np.deg2rad(theta)
-        phi_rad = np.deg2rad(phi)
-        angle_rad = np.deg2rad(angle)
+        # theta_rad = np.deg2rad(theta)
+        # phi_rad = np.deg2rad(phi)
+        # angle_rad = np.deg2rad(angle)
 
         subfindID0=idx
 
         a1,a2,a3=create_tags(subfindID0,basePath+'/output/')
         print('Particle numbers halo :',subfindID0,len(np.where(a1)[0]),len(np.where(a2)[0]),len(np.where(a3)[0]))
         angles = []
-        # fname = galaxy_output+'/cutout_'+str(subfindID0)+'_' + str(theta) + "_" + str(phi) + '.hdf5'
-        fname = galaxy_output+'/cutout_'+str(subfindID0)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle) + '.hdf5'
+        fname = dest+'/cutout_'+str(subfindID0)+'.hdf5'
+        # fname = galaxy_output+'/cutout_'+str(subfindID0)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle) + '.hdf5'
         if os.path.isfile(fname):
             pass
         else:
