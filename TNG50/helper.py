@@ -294,14 +294,31 @@ def get_galaxy_coords(base_path, subfind_id, h0=0.6774, theta=0, phi=0, angle=0)
     phi_rad = np.deg2rad(phi)
     angle_rad = np.deg2rad(angle)
 
-    axis = pol_to_cart(theta_rad, phi_rad)
-    Rview = rotation_matrix(axis, angle_rad)
+    # axis = pol_to_cart(theta_rad, phi_rad)
+    # Rview = rotation_matrix(axis, angle_rad)
 
-    fname = f"{base_path}/individual_inspect/{subfind_id}/cutout_{subfind_id}.hdf5"
+    fname = f"{base_path}/cutout_{subfind_id}.hdf5"
+
     with h5py.File(fname, 'r') as h5f:
-        coords = h5f['PartType4']['Coordinates'][:]/h0
+        data4 = h5f['PartType4']
+        coords = data4['Coordinates'][:]/h0
+        masses = data4['Masses'][:]*1e10/h0
 
-    coords -= np.median(coords, axis=0)
+    # Center galaxy
+    gal_pos = np.median(coords, axis=0)
+    coords -= gal_pos
 
-    # Optional: rotate to galaxy frame (you can skip if already aligned)
-    return coords @ Rview.T
+    # Mask within 30 kpc for stellar inertia tensor
+    r = np.sqrt(np.sum(coords**2, axis=1))
+    mask = (r > 0) & (r < 30)
+    from helper import find_eigenvectors  # ensure this is defined
+    _, v0 = find_eigenvectors(coords[mask], masses[mask])
+
+    # Rotate coordinates
+    rotated_coords = coords @ v0.T
+
+    # Rotate galaxy to have main progenitor stars horizontal
+    rotated_coords = rotated_coords[:, [2, 1, 0]]  # swap Z ↔ X
+
+
+    return rotated_coords.astype('f4')
