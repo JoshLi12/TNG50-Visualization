@@ -314,6 +314,14 @@ def get_galaxy_coords(base_path, subfind_id, h0=0.6774, theta=0, phi=0, angle=0)
     from helper import find_eigenvectors  # ensure this is defined
     _, v0 = find_eigenvectors(coords[mask], masses[mask])
 
+    r = np.linalg.norm(coords, axis=1)
+
+    # Normalize to 0–1
+    r_norm = (r - r.min()) / (r.max() - r.min())
+
+    # Invert so center is brightest
+    brightness = 1.0 - r_norm
+
     # Rotate coordinates
     rotated_coords = coords @ v0.T
 

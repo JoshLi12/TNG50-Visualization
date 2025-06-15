@@ -1,28 +1,11 @@
 import os
 import sys
 import numpy as np
-import pygame
-from pygame.locals import DOUBLEBUF, OPENGL
-import moderngl
+import pyvista as pv
 from helper import get_galaxy_coords, bp_data
 
 sys.path.insert(0, bp_data + r"\code\illustris_python")
 from findtags import create_tags
-
-
-window_size = (1000, 800)
-pygame.init()
-pygame.display.set_mode(window_size, DOUBLEBUF | OPENGL)
-
-
-ctx = moderngl.create_context()
-
-# Setup for render
-pygame.init()
-window_size = (1500, 800)
-pygame.display.set_mode(window_size, DOUBLEBUF | OPENGL)
-ctx = moderngl.create_context()
-clock = pygame.time.Clock()
 
 
 subfind_id = 333426
@@ -44,79 +27,99 @@ coords = get_galaxy_coords(
 print(f"Loaded {len(coords)} stellar particles for SubfindID {subfind_id}.")
 
 a1, a2, a3 = create_tags(subfind_id, bp_data + '/output/')
-colors = np.zeros((len(coords), 3), dtype='f4')
-colors[a1] = [1, 0, 0]  # Main Progenitor Branch
-colors[a2] = [0, 1, 0]  # Friends of Friends
-colors[a3] = [0, 0, 1]  # External Branch
+# colors = np.zeros((len(coords), 3), dtype='f4')
+# colors[a1] = [1,1,1]  # Main Progenitor Branch
+# colors[a2] = [1,1,1]  # Friends of Friends
+# colors[a3] = [1,1,1]  # External Branch
 
-# --- Normalize and center ---
-coords /= 100.0  # scale down for display
-vbo = ctx.buffer(coords.tobytes())
-cbo = ctx.buffer(colors.tobytes())
+r = np.linalg.norm(coords, axis=1)
+r_log = np.log1p(r)  # smooth distance distribution
+r_norm = (r_log - r_log.min()) / (r_log.max() - r_log.min())  # 0 = center, 1 = edge
+brightness = (1.0 - r_norm)**1.5
 
-prog = ctx.program(
-    vertex_shader="""
-    #version 330
-    in vec3 in_pos;
-    in vec3 in_color;
-    out vec3 v_color;
-    uniform mat4 mvp;
-    void main() {
-        gl_Position = mvp * vec4(in_pos, 1.0);
-        gl_PointSize = 5.0;
-        v_color = in_color;
-    }
-    """,
-    fragment_shader="""
-    #version 330
-    in vec3 v_color;
-    out vec4 f_color;
-    void main() {
-        f_color = vec4(v_color, 1.0);
-    }
-    """
+# Invert so center is brightest
+
+
+def color_map(val):
+    if val > 0.95:
+        return [1.0, 1.0, 1.0]      # small, very bright center
+    elif val > 0.8:
+        return [1.0, 0.7, 0.9]      # soft pink
+    elif val > 0.6:
+        return [0.8, 0.4, 1.0]      # purple
+    elif val > 0.4:
+        return [0.3, 0.4, 1.0]      # blue
+    else:
+        return [0.05, 0.05, 0.15]   # deep dark outer halo
+def smooth_colormap(val):
+    val = np.clip(val, 0.0, 1.0)
+
+    # Define the key color steps
+    stops = [0.0, 0.25, 0.5, 0.75, 1.0]
+    colors = [
+        [1.0, 1.0, 1.0],     # White
+        [1.0, 0.6, 0.8],     # Pink
+        [0.9, 0.3, 1.0],     # Magenta
+        [0.5, 0.2, 1.0],     # Violet
+        [0.2, 0.2, 1.0]      # Blue
+    ]
+
+    # Find which range val is in
+    for i in range(len(stops) - 1):
+        if stops[i] <= val <= stops[i+1]:
+            t = (val - stops[i]) / (stops[i+1] - stops[i])
+            c0 = np.array(colors[i])
+            c1 = np.array(colors[i+1])
+            return (1 - t) * c0 + t * c1
+
+    return colors[-1]  # fallback
+    
+brightness = (1.0 - r_norm) ** 1.2
+
+colors = np.array([color_map(1.0 - v) for v in r_norm])
+
+coords = coords / 20.0
+
+# --- Create PyVista point cloud ---
+cloud = pv.PolyData(coords)
+cloud['colors'] = colors
+
+plotter = pv.Plotter(window_size=(1000, 800))
+plotter.set_background([0.01, 0.01, 0.05])  # RGB values (0–1 scale)
+
+alpha = np.clip(brightness, 0.05, 0.4).reshape(-1, 1)
+rgba = np.hstack([colors, alpha])
+
+brightness += np.random.normal(0, 0.01, brightness.shape)
+brightness = np.clip(brightness, 0, 1)
+
+# rgba_colors = np.hstack([colors, np.full((len(colors), 1), 0.6)])  # 30% opacity
+cloud['rgba'] = rgba
+
+plotter.add_points(
+    cloud,
+    scalars='rgba',
+    rgba=True,
+    render_points_as_spheres=True,
+    point_size=2.0
 )
 
-vao = ctx.vertex_array(
-    prog,
-    [(vbo, '3f', 'in_pos'), (cbo, '3f', 'in_color')]
-)
-def perspective(fov, aspect, near, far):
-    f = 1.0 / np.tan(fov / 2.0)
-    return np.array([
-        [f/aspect, 0, 0, 0],
-        [0, f, 0, 0],
-        [0, 0, (far+near)/(near-far), (2*far*near)/(near-far)],
-        [0, 0, -1, 0]
-    ], dtype='f4')
-
-proj = perspective(np.radians(45), window_size[0]/window_size[1], 0.1, 100.0)
-zoom = 0  # initial zoom
+print("brightness range:", np.min(brightness), "to", np.max(brightness))
 
 
-running = True
-while running:
-    ctx.clear(0.0, 0.0, 0.0)
+# plotter.add_axes(
+#     interactive=True,
+#     line_width=2,
+#     color='white',
+#     x_label='X',
+#     y_label='Y',
+#     z_label='Z'
+# )
+plotter.show_axes()
 
-    view = np.eye(4, dtype='f4')
-    view = view @ np.array([
-        [1, 0, 0, 0],
-        [0, 0, 1, 0],
-        [0, -1, 0, 0],
-        [0, 0, 0, 1]
-    ], dtype='f4')
-    view[3, 2] = zoom
-    prog['mvp'].write((proj @ view).T.tobytes())
 
-    vao.render(moderngl.POINTS)
-    pygame.display.flip()
-    clock.tick(60)
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEWHEEL:
-            zoom += event.y * 0.5  # scroll up = zoom in, down = zoom out
+# --- Set edge-on camera (X-Z plane) ---
+plotter.view_yz()  # edge-on, like looking from +Y axis
+plotter.enable_trackball_style()
+plotter.camera.zoom(3)  # >1 zooms in, <1 zooms out
+plotter.show()
