@@ -1,6 +1,11 @@
+# Virtual environment
 venv/
+
+# Python bytecode
 __pycache__/
 *.pyc
+
+# Simulation outputs and folders
 individual_inspect/
-TNG50/cutouts/
+cutouts/
 galaxy_render_base/
