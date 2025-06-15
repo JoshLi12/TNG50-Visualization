@@ -1,3 +1,6 @@
 venv/
-cutouts/
+__pycache__/
+*.pyc
 individual_inspect/
+TNG50/cutouts/
+galaxy_render_base/
