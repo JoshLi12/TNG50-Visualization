@@ -288,14 +288,18 @@ def rotation_matrix(axis, angle_rad):
         [y*x*C + z*s, c + y*y*C,     y*z*C - x*s],
         [z*x*C - y*s, z*y*C + x*s, c + z*z*C    ]
     ])
+def get_galaxy_met(dest, subfind_id):
+    metsun = 0.0127  # Solar metallicity
+    fname = os.path.join(dest, f"cutout_{subfind_id}.hdf5")
+    with h5py.File(fname, 'r') as f:
+        metallicity = f['PartType4']['GFM_Metallicity'][:]
 
-def get_galaxy_coords(base_path, subfind_id, h0=0.6774, theta=0, phi=0, angle=0):
-    theta_rad = np.deg2rad(theta)
-    phi_rad = np.deg2rad(phi)
-    angle_rad = np.deg2rad(angle)
+    log_metallicity = np.log10(metallicity / metsun + 1e-5)
+    log_metallicity = np.clip(log_metallicity, -2, 1)
+    norm = (log_metallicity - log_metallicity.min()) / (log_metallicity.max() - log_metallicity.min())
+    return norm, log_metallicity
 
-    # axis = pol_to_cart(theta_rad, phi_rad)
-    # Rview = rotation_matrix(axis, angle_rad)
+def get_galaxy_coords(base_path, subfind_id, h0=0.6774):
 
     fname = f"{base_path}/cutout_{subfind_id}.hdf5"
 
@@ -303,6 +307,8 @@ def get_galaxy_coords(base_path, subfind_id, h0=0.6774, theta=0, phi=0, angle=0)
         data4 = h5f['PartType4']
         coords = data4['Coordinates'][:]/h0
         masses = data4['Masses'][:]*1e10/h0
+        metallicity = h5f['PartType4']['GFM_Metallicity'][:]
+
 
     # Center galaxy
     gal_pos = np.median(coords, axis=0)
@@ -319,9 +325,6 @@ def get_galaxy_coords(base_path, subfind_id, h0=0.6774, theta=0, phi=0, angle=0)
     # Normalize to 0–1
     r_norm = (r - r.min()) / (r.max() - r.min())
 
-    # Invert so center is brightest
-    brightness = 1.0 - r_norm
-
     # Rotate coordinates
     rotated_coords = coords @ v0.T
 
@@ -330,3 +333,5 @@ def get_galaxy_coords(base_path, subfind_id, h0=0.6774, theta=0, phi=0, angle=0)
 
 
     return rotated_coords.astype('f4')
+
+# Reading Data
