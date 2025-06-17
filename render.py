@@ -23,7 +23,7 @@ coords = get_galaxy_coords(
 
 print(f"Loaded {len(coords)} stellar particles for SubfindID {subfind_id}.")
 
-a1, a2, a3 = create_tags(subfind_id, bp_data + '/output/')
+# a1, a2, a3 = create_tags(subfind_id, bp_data + '/output/')
 # branches = [
 #     (a1, [1, 0, 0], 0.0),  # Red - Main Progenitor
 #     (a2, [0, 1, 0], 0.0),  # Green - FoF
@@ -48,8 +48,8 @@ a1, a2, a3 = create_tags(subfind_id, bp_data + '/output/')
 # cloud['rgba'] = rgba_colors
 cmap = colormaps['inferno']
 norm, log_metallicity = get_galaxy_met(dest, subfind_id)
-rgba_colors = cmap(norm)
-rgba_colors = rgba_colors.astype('f4')  # Ensure float32
+# rgba_colors = cmap(norm)
+# rgba_colors = rgba_colors.astype('f4')  # Ensure float32
 
 cloud = pv.PolyData(coords)
 cloud['logZ'] = log_metallicity
@@ -61,6 +61,18 @@ coords = coords / 20.0
 plotter = pv.Plotter(window_size=(1000, 800))
 plotter.set_background([0.01, 0.01, 0.05])  # RGB values (0–1 scale)
 
+
+plotter.add_points(
+    cloud,
+    scalars='logZ',
+    # rgba=True,
+    cmap='inferno',
+    render_points_as_spheres=True,
+    point_size=2.0,
+    show_scalar_bar=False
+
+)
+
 plotter.add_scalar_bar(
     title='[Z/Z☉] (log scale)',
     n_labels=5,
@@ -68,15 +80,6 @@ plotter.add_scalar_bar(
     title_font_size=14,
     label_font_size=12,
     shadow=True
-)
-
-plotter.add_points(
-    cloud,
-    scalars='logZ',
-    rgba=True,
-    cmap='inferno',
-    render_points_as_spheres=True,
-    point_size=2.0
 )
 
 
