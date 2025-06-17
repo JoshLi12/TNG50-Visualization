@@ -473,17 +473,12 @@ if __name__ == '__main__':
         plt.xlim(-50,50)
         plt.ylim(-50,50)
 
-        thetaRad = np.deg2rad(theta)
-        phiRad = np.deg2rad(phi)
+        new2D = project_edge_on(coordinates_rot, theta, phi)
 
-        x, y, z = pol2Cart(thetaRad, phiRad)
-        axis = np.array([x, y, z])
-
-        R = rotation_matrix(axis, angle)
-        newProj = coordinates_rot @ R.T
-
-        plt.plot(newProj[~a1,2],newProj[~a1,1],',', alpha=0.6)
-        plt.plot(newProj[a1,2],newProj[a1,1],',', alpha=0.1)
+        #plt.plot(new2D[~a1,1], new2D[~a1,0], ',', alpha=0.6)
+        plt.plot(new2D[ a1,1], new2D[ a1,0], ',', alpha=0.1)
+        plt.gca().set_aspect('equal', 'box')
+        plt.show()
         
         # Work out 10-40 minor axis profile
         # minor axis is either plus y or minus y with this rotated coordinate system
