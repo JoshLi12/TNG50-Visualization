@@ -77,9 +77,11 @@ plotter.add_scalar_bar(
     title='[Z/Z☉] (log scale)',
     n_labels=5,
     vertical=True,
+    color='white',
     title_font_size=14,
     label_font_size=12,
-    shadow=True
+    # shadow=True,
+    # outline=True
 )
 
 
