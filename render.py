@@ -16,14 +16,15 @@ subfind_id = 333426 #change-able
 bp_local = os.getcwd()  # Local TNG50 folder for output
 dest = os.path.join(bp_local, "galaxy_render_base")
 
-coords = get_galaxy_coords(
+coords, rot_matrix = get_galaxy_coords(
     base_path=dest,
     subfind_id=subfind_id,
-).astype('f4')
+)
 
 velocities = get_galaxy_vel(
     dest=dest,
-    subfind_id=subfind_id
+    subfind_id=subfind_id,
+    v0=rot_matrix
 ).astype("f4")
 
 
@@ -88,12 +89,13 @@ cloud['v_radial'] = np.zeros(len(coords))
 coords /= 20.0
 
 plotter = pv.Plotter(window_size=(1000, 800))
-plotter.set_background([0.01, 0.01, 0.05])  # RGB values (0–1 scale)
+# plotter.set_background([0.01, 0.01, 0.05])  # RGB values (0–1 scale)
+plotter.set_background([255,255,255])
 
 plotter.add_points(
     cloud,
     scalars='v_radial',
-    cmap='coolwarm',
+    cmap='hsv',
     render_points_as_spheres=True,
     point_size=2.0,
     show_scalar_bar=True
