@@ -99,16 +99,13 @@ plotter.add_points(
     show_scalar_bar=True
 )
 
-def update_radial_velocity_colors(plotter, cloud, coords, velocities):
+def on_camera_move(caller, event):
     view_vector = plotter.camera.direction
-    radial_v = np.dot(velocities, view_vector)
-    cloud['v_radial'] = radial_v
-    plotter.update_scalars(radial_v, render=True)
+    v_rad = compute_rvel(velocities, view_vector)
+    cloud['v_radial'] = v_rad
+    plotter.update_scalars(v_rad, render=True)
 
-def on_camera_update(caller, event):
-    update_radial_velocity_colors(plotter, cloud, coords, velocities)
-
-plotter.add_callback(on_camera_update, interval=100)
+plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
 # plotter.show()
 # plotter.add_axes(
 #     interactive=True,
