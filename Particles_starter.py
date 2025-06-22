@@ -400,7 +400,7 @@ if __name__ == '__main__':
 
         idx = mw_like[i]
         theta = 90
-        phi = 45
+        phi = 0
 
         galaxy_output = os.path.join(bp_local, "individual_inspect", str(idx))
         os.makedirs(galaxy_output, exist_ok=True)
@@ -609,7 +609,7 @@ if __name__ == '__main__':
         # os.makedirs(os.path.join(bp_local, "cutouts", "results"), exist_ok=True)
         # plt.savefig(bp_local+'/cutouts/results/'+str(idx)+'.png', format='png',dpi=200)
         os.makedirs(os.path.join(galaxy_output, "results"), exist_ok=True)
-        plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" + str(angle_degrees) +'.png', format='png',dpi=200)
+        plt.savefig(galaxy_output+'/results/'+str(idx)+'_' + str(theta) + "_" + str(phi) + "_" +'.png', format='png',dpi=200)
 
 
                 
