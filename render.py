@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pyvista as pv
 from matplotlib.colors import Normalize
-from helper import get_galaxy_coords, bp_data, get_galaxy_met
+from helper import get_galaxy_coords, bp_data, get_galaxy_met, get_galaxy_vel, compute_rvel
 from matplotlib.cm import get_cmap
 from matplotlib import colormaps
 import h5py
@@ -20,6 +20,12 @@ coords = get_galaxy_coords(
     base_path=dest,
     subfind_id=subfind_id,
 ).astype('f4')
+
+velocities = get_galaxy_vel(
+    dest=dest,
+    subfind_id=subfind_id
+).astype("f4")
+
 
 print(f"Loaded {len(coords)} stellar particles for SubfindID {subfind_id}.")
 
@@ -44,49 +50,66 @@ print(f"Loaded {len(coords)} stellar particles for SubfindID {subfind_id}.")
 # # --- Create PyVista point cloud ---
 # # rgba_colors = np.hstack([colors, np.full((len(colors), 1), 0.6)])  # 30% opacity
 
+# Metallicity mapping
+# cmap = colormaps['inferno']
+# norm, log_metallicity = get_galaxy_met(dest, subfind_id)
+
+
 # cloud = pv.PolyData(coords)
-# cloud['rgba'] = rgba_colors
-cmap = colormaps['inferno']
-norm, log_metallicity = get_galaxy_met(dest, subfind_id)
-# rgba_colors = cmap(norm)
-# rgba_colors = rgba_colors.astype('f4')  # Ensure float32
+# cloud['logZ'] = log_metallicity
+
+# coords = coords / 20.0
+# # cloud = pv.PolyData(coords)
+# # cloud['rgba'] = rgba_colors
+
+
+# plotter.add_points(
+#     cloud,
+#     scalars='logZ',
+#     # rgba=True,
+#     cmap='inferno',
+#     render_points_as_spheres=True,
+#     point_size=2.0,
+#     show_scalar_bar=False
+
+# )
+
+# plotter.add_scalar_bar(
+#     title='[Z/Z☉] (log scale)',
+#     n_labels=5,
+#     vertical=True,
+#     color='white',
+#     title_font_size=14,
+#     label_font_size=12,
+# )
 
 cloud = pv.PolyData(coords)
-cloud['logZ'] = log_metallicity
-
-coords = coords / 20.0
-# cloud = pv.PolyData(coords)
-# cloud['rgba'] = rgba_colors
+cloud['v_radial'] = np.zeros(len(coords))
+coords /= 20.0
 
 plotter = pv.Plotter(window_size=(1000, 800))
 plotter.set_background([0.01, 0.01, 0.05])  # RGB values (0–1 scale)
 
-
 plotter.add_points(
     cloud,
-    scalars='logZ',
-    # rgba=True,
-    cmap='inferno',
+    scalars='v_radial',
+    cmap='coolwarm',
     render_points_as_spheres=True,
     point_size=2.0,
-    show_scalar_bar=False
-
+    show_scalar_bar=True
 )
 
-plotter.add_scalar_bar(
-    title='[Z/Z☉] (log scale)',
-    n_labels=5,
-    vertical=True,
-    color='white',
-    title_font_size=14,
-    label_font_size=12,
-    # shadow=True,
-    # outline=True
-)
+def update_radial_velocity_colors(plotter, cloud, coords, velocities):
+    view_vector = plotter.camera.direction
+    radial_v = np.dot(velocities, view_vector)
+    cloud['v_radial'] = radial_v
+    plotter.update_scalars(radial_v, render=True)
 
+def on_camera_update(caller, event):
+    update_radial_velocity_colors(plotter, cloud, coords, velocities)
 
-
-
+plotter.add_callback(on_camera_update, interval=100)
+# plotter.show()
 # plotter.add_axes(
 #     interactive=True,
 #     line_width=2,

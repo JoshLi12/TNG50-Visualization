@@ -299,6 +299,16 @@ def get_galaxy_met(dest, subfind_id):
     norm = (log_metallicity - log_metallicity.min()) / (log_metallicity.max() - log_metallicity.min())
     return norm, log_metallicity
 
+def get_galaxy_vel(dest, subfind_id):
+    fname = f"{dest}/cutout_{subfind_id}.hdf5"
+    with h5py.File(fname, 'r') as h5f:
+        velocities = h5f['PartType4']['Velocities'][:]
+    gal_vel = np.median(velocities, axis=0)
+    return velocities - gal_vel
+
+def compute_rvel(velocities, view_vector):
+    return np.dot(velocities, view_vector / np.linalg.norm(view_vector))
+
 def get_galaxy_coords(base_path, subfind_id, h0=0.6774):
 
     fname = f"{base_path}/cutout_{subfind_id}.hdf5"
