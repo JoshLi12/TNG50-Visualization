@@ -3,6 +3,8 @@ import sys
 import numpy as np
 import pyvista as pv
 from matplotlib.colors import Normalize
+from matplotlib.colors import LinearSegmentedColormap
+
 from helper import get_galaxy_coords, bp_data, get_galaxy_met, get_galaxy_vel, compute_rvel
 from matplotlib.cm import get_cmap
 from matplotlib import colormaps
@@ -25,7 +27,16 @@ velocities = get_galaxy_vel(
     dest=dest,
     subfind_id=subfind_id,
     v0=rot_matrix
-).astype("f4")
+).astype("f4")  
+
+# r = np.linalg.norm(coords, axis=1)
+# mask = r > 20  # or try 30
+# coords = coords[mask]
+# velocities = velocities[mask]
+
+colors = ['purple', 'pink', 'white', 'lightblue', 'blue']
+custom_cmap = LinearSegmentedColormap.from_list("my_streammap", colors, N=256)
+
 
 
 print(f"Loaded {len(coords)} stellar particles for SubfindID {subfind_id}.")
@@ -90,12 +101,12 @@ coords /= 20.0
 
 plotter = pv.Plotter(window_size=(1000, 800))
 # plotter.set_background([0.01, 0.01, 0.05])  # RGB values (0–1 scale)
-plotter.set_background([255,255,255])
+plotter.set_background([0.01, 0.01, 0.05])
 
 plotter.add_points(
     cloud,
     scalars='v_radial',
-    cmap='hsv',
+    cmap=custom_cmap,
     render_points_as_spheres=True,
     point_size=2.0,
     show_scalar_bar=True
@@ -104,6 +115,9 @@ plotter.add_points(
 def on_camera_move(caller, event):
     view_vector = plotter.camera.direction
     v_rad = compute_rvel(velocities, view_vector)
+    p = np.percentile(v_rad, [1, 50, 99])
+    print("v_rad percentiles (1%, 50%, 99%):", p)
+
     cloud['v_radial'] = v_rad
     plotter.update_scalars(v_rad, render=True)
 
@@ -120,8 +134,9 @@ plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
 plotter.show_axes()
 
 
+
 # --- Set edge-on camera (X-Z plane) ---
-plotter.view_yz()  # edge-on, like looking from +Y axis
+plotter.view_xy()
 plotter.enable_trackball_style()
 plotter.camera.zoom(3)  # >1 zooms in, <1 zooms out
 plotter.show()
