@@ -1,33 +1,84 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow
-from PyQt5.QtCore import QSize, Qt
-
-
-# Only needed for access to command line arguments
 import sys
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout
+)
+from PyQt5.QtCore import Qt, QSize
+from pyvistaqt import QtInteractor
+
+from render import load_galaxy_data
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("My App")
-        button = QPushButton("Press Me!")
+        self.setWindowTitle("TNG50 Galaxy Viewer")
+        self.setMinimumSize(QSize(1200, 800))
 
-        self.setCentralWidget(button)
+        # Main layout
+        widget = QWidget()
+        layout = QVBoxLayout()
 
-        self.setMinimumSize(QSize(1200,800))
+        # PyVista plot widget
+        self.plotter = QtInteractor(self)
+        layout.addWidget(self.plotter.interactor)
 
-# You need one (and only one) QApplication instance per application.
-# Pass in sys.argv to allow command line arguments for your app.
-# If you know you won't use command line arguments QApplication([]) works too.
-app = QApplication(sys.argv)
+        # Button layout
+        btn_layout = QHBoxLayout()
+        self.origin_btn = QPushButton("Stellar Origin")
+        self.velocity_btn = QPushButton("Velocity")
+        self.metallicity_btn = QPushButton("Metallicity")
 
-# Create a Qt widget, which will be our window.
-window = MainWindow()
-window.show()  # IMPORTANT!!!!! Windows are hidden by default.
+        for btn in [self.origin_btn, self.velocity_btn, self.metallicity_btn]:
+            btn_layout.addWidget(btn)
 
-# Start the event loop.
-app.exec()
+        layout.addLayout(btn_layout)
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
 
+        # Load galaxy data once
+        self.subfind_id = 333426
+        self.data = load_galaxy_data(self.subfind_id)
 
-# Your application won't reach here until you exit and the event
-# loop has stopped.
+        # Connect buttons
+        self.origin_btn.clicked.connect(self.display_origin)
+        self.velocity_btn.clicked.connect(self.display_velocity)
+        self.metallicity_btn.clicked.connect(self.display_metallicity)
+
+        # Initial render
+        self.display_origin()
+
+    def display_origin(self):
+        self.plotter.clear()
+        self.plotter.add_points(
+            self.data['coords'], scalars=self.data['origin_tags'],
+            cmap='coolwarm', render_points_as_spheres=True,
+            point_size=2.5
+        )
+        self.plotter.add_scalar_bar(title="Stellar Origin")
+        self.plotter.reset_camera()
+
+    def display_velocity(self):
+        self.plotter.clear()
+        self.plotter.add_points(
+            self.data['coords'], scalars=self.data['velocity_magnitude'],
+            cmap='viridis', render_points_as_spheres=True,
+            point_size=2.5
+        )
+        self.plotter.add_scalar_bar(title="Velocity (km/s)")
+        self.plotter.reset_camera()
+
+    def display_metallicity(self):
+        self.plotter.clear()
+        self.plotter.add_points(
+            self.data['coords'], scalars=self.data['logZ'],
+            cmap='inferno', render_points_as_spheres=True,
+            point_size=2.5
+        )
+        self.plotter.add_scalar_bar(title="[Z/Z☉] (log scale)")
+        self.plotter.reset_camera()
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())

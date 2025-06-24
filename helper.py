@@ -18,6 +18,11 @@ from matplotlib.colors import to_hex
 from scipy.spatial.transform import Rotation as R
 from multiprocessing import Process, Pipe
 import requests
+from findtags import create_tags
+import illustris_python as il
+import h5py
+
+
 
 
 bp_data = r"N:\TNG50"   # Mounted drive with illustris_python and data
@@ -352,4 +357,19 @@ def get_galaxy_coords(base_path, subfind_id, h0=0.6774):
 
     return rotated_coords.astype('f4'), v0
 
-# Reading Data
+def load_galaxy_data(base_path, subfind_id):
+    coords, v0 = get_galaxy_coords(base_path, subfind_id)
+    normZ, metZ = get_galaxy_met(base_path, subfind_id)
+
+    sys.path.insert(0, bp_data + r"\code\illustris_python")
+    a1, a2, a3 = create_tags(subfind_id, bp_data + '/output/')
+    origin_tags = a1.astype(int) + 2 * a2.astype(int) + 3 * a3.astype(int)
+
+    vmag = get_galaxy_vel(base_path, subfind_id)
+
+    return {
+        'coords': coords,
+        'met': metZ,
+        'origin_tags': origin_tags,
+        'velocity_magnitude': vmag
+    }
