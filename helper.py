@@ -362,14 +362,14 @@ def get_galaxy_coords(base_path, subfind_id, h0=0.6774):
     return rotated_coords.astype('f4'), v0
 
 def load_galaxy_data(base_path, subfind_id):
-    subfind_id = 333426
+    # subfind_id = 333426
     coords, v0 = get_galaxy_coords(base_path, subfind_id)
     normZ, metZ = get_galaxy_met(base_path, subfind_id)
 
     a1, a2, a3 = create_tags(subfind_id, bp_data + '/output/')
     origin_tags = a1.astype(int) + 2 * a2.astype(int) + 3 * a3.astype(int)
 
-    vmag = get_galaxy_vel(base_path, subfind_id)
+    vmag = get_galaxy_vel(base_path, subfind_id, v0)
 
     return {
         'coords': coords,

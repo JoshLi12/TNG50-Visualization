@@ -22,6 +22,11 @@ coords, rot_matrix = get_galaxy_coords(
     base_path=dest,
     subfind_id=subfind_id,
 )
+# check if color bar is changing
+# make spatial bins, show 2 bars, difference between percentiles and mean of the bin
+
+# residual; fit a model, do some smoothing, make a prediction of what the velocity of the star should be
+# tilted ring, disk model, 
 
 velocities = get_galaxy_vel(
     dest=dest,

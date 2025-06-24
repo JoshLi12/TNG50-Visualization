@@ -5,7 +5,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QSize
 from pyvistaqt import QtInteractor
 
-from render import load_galaxy_data
+from helper import load_galaxy_data
+import os
+
+bp_local = os.getcwd()  # Local TNG50 folder for output
+dest = os.path.join(bp_local, "galaxy_render_base")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -36,8 +40,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
         # Load galaxy data once
+        self.base_path = dest
         self.subfind_id = 333426
-        self.data = load_galaxy_data(self.subfind_id)
+        self.data = load_galaxy_data(self.base_path, self.subfind_id)
 
         # Connect buttons
         self.origin_btn.clicked.connect(self.display_origin)
@@ -70,7 +75,7 @@ class MainWindow(QMainWindow):
     def display_metallicity(self):
         self.plotter.clear()
         self.plotter.add_points(
-            self.data['coords'], scalars=self.data['logZ'],
+            self.data['coords'], scalars=self.data['met'],
             cmap='inferno', render_points_as_spheres=True,
             point_size=2.5
         )
