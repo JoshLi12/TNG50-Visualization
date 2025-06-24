@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QVBoxLayout
 )
 from PyQt5.QtCore import Qt, QSize
 from pyvistaqt import QtInteractor
@@ -15,29 +15,28 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("TNG50 Galaxy Viewer")
+        self.setWindowTitle("Galaxy Taskbar GUI")
         self.setMinimumSize(QSize(1200, 800))
 
-        # Main layout
-        widget = QWidget()
-        layout = QVBoxLayout()
+        # Central widget with horizontal layout
+        main_widget = QWidget()
+        main_layout = QHBoxLayout(main_widget)
 
-        # PyVista plot widget
-        self.plotter = QtInteractor(self)
-        layout.addWidget(self.plotter.interactor)
+        # Sidebar (vertical taskbar on the left)
+        sidebar = QVBoxLayout()
+        sidebar.setSpacing(10)  # Optional: spacing between buttons
+        sidebar_widget = QWidget()
+        sidebar_widget.setLayout(sidebar)
 
-        # Button layout
-        btn_layout = QHBoxLayout()
-        self.origin_btn = QPushButton("Stellar Origin")
-        self.velocity_btn = QPushButton("Velocity")
-        self.metallicity_btn = QPushButton("Metallicity")
+        # Example buttons
+        sidebar.addWidget(QPushButton("Load Galaxy"))
+        sidebar.addWidget(QPushButton("Toggle View"))
+        sidebar.addWidget(QPushButton("Color Map"))
+        sidebar.addWidget(QPushButton("Exit"))
 
-        for btn in [self.origin_btn, self.velocity_btn, self.metallicity_btn]:
-            btn_layout.addWidget(btn)
+        main_layout.addWidget(sidebar_widget)
 
-        layout.addLayout(btn_layout)
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        self.setCentralWidget(main_widget)
 
         # Load galaxy data once
         self.base_path = dest
