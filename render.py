@@ -95,6 +95,34 @@ print(f"Loaded {len(coords)} stellar particles for SubfindID {subfind_id}.")
 #     label_font_size=12,
 # )
 
+def load_galaxy_data(subfind_id=333426):
+    from helper import get_galaxy_coords, get_galaxy_met, bp_data
+    from findtags import create_tags
+    import os
+
+    bp_local = os.getcwd()
+    dest = os.path.join(bp_local, "galaxy_render_base")
+
+    coords = get_galaxy_coords(dest, subfind_id)
+    normZ, logZ = get_galaxy_met(dest, subfind_id)
+    a1, a2, a3 = create_tags(subfind_id, bp_data + '/output/')
+    origin_tags = a1.astype(int) + 2 * a2.astype(int) + 3 * a3.astype(int)
+
+    # load velocities
+    import h5py
+    hdf_path = os.path.join(dest, f"cutout_{subfind_id}.hdf5")
+    with h5py.File(hdf_path, 'r') as f:
+        vels = f['PartType4']['Velocities'][:]
+        vels = vels - np.median(vels, axis=0)  # center velocities
+        vmag = np.linalg.norm(vels, axis=1)
+
+    return {
+        'coords': coords,
+        'logZ': logZ,
+        'origin_tags': origin_tags,
+        'velocity_magnitude': vmag
+    }
+
 cloud = pv.PolyData(coords)
 cloud['v_radial'] = np.zeros(len(coords))
 coords /= 20.0
