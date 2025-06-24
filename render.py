@@ -34,8 +34,8 @@ velocities = get_galaxy_vel(
 # coords = coords[mask]
 # velocities = velocities[mask]
 
-colors = ['purple', 'pink', 'white', 'lightblue', 'blue']
-custom_cmap = LinearSegmentedColormap.from_list("my_streammap", colors, N=256)
+colors = ['#2c7bb6', 'white', '#d7191c']  # blue–white–red
+custom_cmap = LinearSegmentedColormap.from_list("radial_cmap", colors)
 
 
 
