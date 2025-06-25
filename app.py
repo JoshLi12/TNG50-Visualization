@@ -8,6 +8,9 @@ from pyvistaqt import QtInteractor
 from helper import load_galaxy_data
 import os
 
+import numpy as np
+
+
 bp_local = os.getcwd()  # Local TNG50 folder for output
 dest = os.path.join(bp_local, "galaxy_render_base")
 
@@ -21,20 +24,25 @@ class MainWindow(QMainWindow):
         # Central widget with horizontal layout
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
+        self.plotter = QtInteractor(self)
+
 
         # Sidebar (vertical taskbar on the left)
         sidebar = QVBoxLayout()
-        sidebar.setSpacing(10)  # Optional: spacing between buttons
+        sidebar.setSpacing(1)  # Optional: spacing between buttons
         sidebar_widget = QWidget()
         sidebar_widget.setLayout(sidebar)
+    
+        self.origin_btn = QPushButton("Stellar Origin")
+        self.velocity_btn = QPushButton("Velocity")
+        self.metallicity_btn = QPushButton("Metallicity")
 
-        # Example buttons
-        sidebar.addWidget(QPushButton("Load Galaxy"))
-        sidebar.addWidget(QPushButton("Toggle View"))
-        sidebar.addWidget(QPushButton("Color Map"))
-        sidebar.addWidget(QPushButton("Exit"))
-
+        for btn in [self.origin_btn, self.velocity_btn, self.metallicity_btn]:
+            sidebar.addWidget(btn)
+        
         main_layout.addWidget(sidebar_widget)
+        main_layout.addWidget(self.plotter.interactor)
+        
 
         self.setCentralWidget(main_widget)
 
@@ -48,15 +56,37 @@ class MainWindow(QMainWindow):
         self.velocity_btn.clicked.connect(self.display_velocity)
         self.metallicity_btn.clicked.connect(self.display_metallicity)
 
+        # Plotter settings
+        self.plotter.set_background([0.01, 0.01, 0.05])
+        self.plotter.camera.zoom(10)  # >1 zooms in, <1 zooms out
+        self.plotter.view_xy()
+        self.plotter.enable_trackball_style()
+
+
+
         # Initial render
         self.display_origin()
 
+        print(self.data['origin_tags'])
+
     def display_origin(self):
         self.plotter.clear()
+        tag_colors = {
+            1: [1.0, 0.2, 0.2, 0.6],  # Red (Main Progenitor)
+            2: [0.2, 0.8, 0.2, 0.8],  # Green (FoF)
+            3: [0.4, 0.4, 1.0, 0.8],  # Blue (External)
+        }
+
+        tags = self.data['origin_tags'].astype(int)
+        rgba_colors = np.array([tag_colors.get(tag, [0, 0, 0, 0]) for tag in tags], dtype='f4')
+        
         self.plotter.add_points(
-            self.data['coords'], scalars=self.data['origin_tags'],
-            cmap='coolwarm', render_points_as_spheres=True,
-            point_size=2.5
+            self.data['coords'],
+            scalars=rgba_colors,
+            rgba=True,
+            render_points_as_spheres=True,
+            point_size=2,
+            show_scalar_bar=False
         )
         self.plotter.add_scalar_bar(title="Stellar Origin")
         self.plotter.reset_camera()
