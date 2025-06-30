@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
 
         pv.global_theme.allow_empty_mesh = True
 
-        self.setWindowTitle("Galaxy Taskbar GUI")
+        self.setWindowTitle("TNG50 Visualizer GUI")
         self.setMinimumSize(QSize(1200, 800))
 
         
