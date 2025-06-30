@@ -6,7 +6,11 @@ from PyQt5.QtCore import Qt, QSize
 from pyvistaqt import QtInteractor
 import pyvista as pv
 
-from helper import load_galaxy_data
+from PyQt5.QtCore import QTimer
+
+from helper import load_galaxy_data, get_galaxy_vel, compute_rvel, get_galaxy_coords
+from matplotlib.colors import LinearSegmentedColormap
+
 import os
 
 import numpy as np
@@ -26,6 +30,10 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Galaxy Taskbar GUI")
         self.setMinimumSize(QSize(1200, 800))
+
+        self.update_timer = QTimer()
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(lambda: self._update_radial_velocity(cloud, velocities))
 
         # Central widget with horizontal layout
         main_widget = QWidget()
@@ -102,8 +110,6 @@ class MainWindow(QMainWindow):
     def display_origin(self):
         self.plotter.clear()
 
-
-
         tag_colors = {
             1: [1.0, 0.2, 0.2, 0.6],  # Red (Main Progenitor)
             2: [0.2, 0.8, 0.2, 0.8],  # Green (FoF)
@@ -146,21 +152,26 @@ class MainWindow(QMainWindow):
 
     def display_velocity(self):
         self.plotter.clear()
-        self.plotter.add_points(
-            self.data['coords'], scalars=self.data['velocity_magnitude'],
-            cmap='viridis', render_points_as_spheres=True,
-            point_size=2.5
+
+        # Re-load coordinates and rotation matrix (from helper)
+        coords, rot_matrix = get_galaxy_coords(
+            base_path=self.base_path,
+            subfind_id=self.subfind_id
         )
-        self.plotter.add_scalar_bar(title="Velocity (km/s)")
-        self.plotter.reset_camera()
 
-    def display_metallicity(self):
-        self.plotter.clear()
-        cloud = pv.PolyData(self.data['coords'])
-        cloud['v_radial'] = np.zeros(len(self.data['coords']))
+        velocities = get_galaxy_vel(
+            dest=self.base_path,
+            subfind_id=self.subfind_id,
+            v0=rot_matrix
+        ).astype('f4')
 
-        colors = ['#2c7bb6', 'white', '#d7191c']  # blue–white–red
+        cloud = pv.PolyData(coords)
+        cloud['v_radial'] = np.zeros(len(coords))  # placeholder for live updating
+
+        # Custom blue-white-red color map
+        colors = ['#2c7bb6', 'white', '#d7191c']
         custom_cmap = LinearSegmentedColormap.from_list("radial_cmap", colors)
+
         self.plotter.add_points(
             cloud,
             scalars='v_radial',
@@ -168,6 +179,38 @@ class MainWindow(QMainWindow):
             render_points_as_spheres=True,
             point_size=2.0,
             show_scalar_bar=True
+        )
+        self.plotter.add_scalar_bar(title="Radial Velocity (km/s)")
+        self.plotter.reset_camera()
+
+        def delay(caller, event):
+            self.update_timer.start(50)
+
+        def on_camera_move(caller, event):
+            view_vector = self.plotter.camera.direction
+            v_rad = compute_rvel(velocities, view_vector)
+            cloud['v_radial'] = v_rad
+            self.plotter.update_scalars(v_rad, render=True)
+
+            p = np.percentile(v_rad, [1, 50, 99])
+            print("v_rad percentiles (1%, 50%, 99%):", p)
+
+        self.plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
+
+    def display_metallicity(self):
+        self.plotter.clear()
+        cloud = pv.PolyData(self.data['coords'])
+        cloud['logZ'] = self.data['met']  # use log metallicity values from helper.py
+
+        colors = ['#2c7bb6', 'white', '#d7191c']  # blue–white–red
+        custom_cmap = LinearSegmentedColormap.from_list("radial_cmap", colors)
+        self.plotter.add_points(
+            cloud,
+            scalars='logZ',
+            cmap=custom_cmap,
+            render_points_as_spheres=True,
+            point_size=2.0,
+            show_scalar_bar=False
         )
         self.plotter.add_scalar_bar(title="[Z/Z☉] (log scale)")
         self.plotter.reset_camera()
