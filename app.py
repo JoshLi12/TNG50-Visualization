@@ -31,9 +31,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Galaxy Taskbar GUI")
         self.setMinimumSize(QSize(1200, 800))
 
-        self.update_timer = QTimer()
-        self.update_timer.setSingleShot(True)
-        self.update_timer.timeout.connect(lambda: self._update_radial_velocity(cloud, velocities))
+        
 
         # Central widget with horizontal layout
         main_widget = QWidget()
@@ -88,7 +86,7 @@ class MainWindow(QMainWindow):
 
         # Plotter settings
         self.plotter.set_background([0.01, 0.01, 0.05])
-        self.plotter.camera.zoom(10)  # >1 zooms in, <1 zooms out
+        self.plotter.camera.zoom(15)  # >1 zooms in, <1 zooms out
         self.plotter.view_xy()
         self.plotter.enable_trackball_style()
 
@@ -178,15 +176,19 @@ class MainWindow(QMainWindow):
             cmap=custom_cmap,
             render_points_as_spheres=True,
             point_size=2.0,
-            show_scalar_bar=True
+            show_scalar_bar=False
         )
-        self.plotter.add_scalar_bar(title="Radial Velocity (km/s)")
+        self.plotter.add_scalar_bar(color='white', title="Radial Velocity (km/s)")
         self.plotter.reset_camera()
 
-        def delay(caller, event):
-            self.update_timer.start(50)
+        self.update_timer = QTimer()
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(lambda: on_camera_move(cloud, velocities))
 
-        def on_camera_move(caller, event):
+        def delay(caller, event):
+            self.update_timer.start(8)
+
+        def on_camera_move(cloud, velocities):
             view_vector = self.plotter.camera.direction
             v_rad = compute_rvel(velocities, view_vector)
             cloud['v_radial'] = v_rad
@@ -195,7 +197,7 @@ class MainWindow(QMainWindow):
             p = np.percentile(v_rad, [1, 50, 99])
             print("v_rad percentiles (1%, 50%, 99%):", p)
 
-        self.plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
+        self.plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", delay)
 
     def display_metallicity(self):
         self.plotter.clear()
