@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QVBoxLayout
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QVBoxLayout, QLineEdit
 )
 from PyQt5.QtCore import Qt, QSize
 from pyvistaqt import QtInteractor
@@ -10,6 +10,7 @@ from PyQt5.QtCore import QTimer
 
 from helper import load_galaxy_data, get_galaxy_vel, compute_rvel, get_galaxy_coords
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib import cm
 
 import os
 
@@ -52,6 +53,14 @@ class MainWindow(QMainWindow):
         self.fof_btn = QPushButton("Friends of Friends")
         self.external_btn = QPushButton("External")
 
+        # self.galaxy_input = QLineEdit()
+        # self.galaxy_input.setPlaceholderText("Enter Galaxy ID")
+        # self.load_btn = QPushButton("Load Galaxy")
+        # self.load_btn.clicked.connect(self.load_new_galaxy)
+
+        # sidebar.addWidget(self.galaxy_input)
+        # sidebar.addWidget(self.load_btn)
+
 
         for btn in [self.origin_btn, self.velocity_btn, self.metallicity_btn, self.progenitor_btn, self.fof_btn, self.external_btn]:
             sidebar.addWidget(btn)
@@ -61,9 +70,6 @@ class MainWindow(QMainWindow):
             btn.setChecked(True)  # Show all by default
             btn.clicked.connect(self.progenitor_click)
             sidebar.addWidget(btn)
-
-        
-        self.origin_btn.clicked.connect(self.select_all_origins)
 
         # Metallicity Map
 
@@ -93,13 +99,25 @@ class MainWindow(QMainWindow):
         self.exit_btn.clicked.connect(self.close)  # `self.close` is built-in from QMainWindow
         sidebar.addWidget(self.exit_btn)
 
+        self.origin_btn.clicked.connect(self.origin_clicked)
+        self.velocity_btn.clicked.connect(self.velocity_clicked)
+
         # Initial render
         self.display_origin()
 
         self.current_map = 1
 
         
+    def load_new_galaxy(self):
+        user_input = self.galaxy_input.text().strip()
+        if not user_input.isdigit():
+            print("Invalid Subfind ID.")
+            return
 
+        self.subfind_id = int(user_input)
+        print(f"Loading new galaxy: {self.subfind_id}")
+
+        self.data = load_galaxy_data(self.base_path, self.subfind_id)
 
     def progenitor_click(self):
         if self.current_map == 1:
@@ -116,7 +134,12 @@ class MainWindow(QMainWindow):
     #         self.display_velocity()
         
 
-    def select_all_origins(self):
+    def activate_all_origins(self):
+        self.progenitor_btn.setChecked(True)
+        self.fof_btn.setChecked(True)
+        self.external_btn.setChecked(True)
+    
+    def origin_clicked(self):
         self.progenitor_btn.setChecked(True)
         self.fof_btn.setChecked(True)
         self.external_btn.setChecked(True)
@@ -125,6 +148,7 @@ class MainWindow(QMainWindow):
     def display_origin(self):
         self.plotter.clear()
         self.current_map = 1
+        # self.activate_all_origins()
 
         tag_colors = {
             1: [1.0, 0.2, 0.2, 0.6],  # Red (Main Progenitor)
@@ -164,11 +188,17 @@ class MainWindow(QMainWindow):
             print("No origin types selected — nothing to display.")
         self.plotter.reset_camera()
 
+    def velocity_clicked(self):
+        self.progenitor_btn.setChecked(True)
+        self.fof_btn.setChecked(True)
+        self.external_btn.setChecked(True)
+        self.display_velocity()
 
     def display_velocity(self):
         self.current_map = 2
-
         self.plotter.clear()
+        # self.activate_all_origins()
+        
 
         # Load full data
         coords_all, rot_matrix = get_galaxy_coords(self.base_path, self.subfind_id)
@@ -205,6 +235,10 @@ class MainWindow(QMainWindow):
         # Setup colormap
         colors = ['#2c7bb6', 'white', '#d7191c']
         custom_cmap = LinearSegmentedColormap.from_list("radial_cmap", colors)
+        # custom_cmap = matplotlib.colormaps['coolwarm']
+
+        vmin, vmax = np.percentile(v_rad, [5, 95])  # Exclude outliers
+
 
         self.plotter.add_points(
             cloud,
@@ -212,7 +246,8 @@ class MainWindow(QMainWindow):
             cmap=custom_cmap,
             render_points_as_spheres=True,
             point_size=2.0,
-            show_scalar_bar=False
+            show_scalar_bar=False,
+            clim=[vmin, vmax]
         )
         self.plotter.add_scalar_bar(title="Radial Velocity (km/s)", color='white')
         self.plotter.reset_camera()
