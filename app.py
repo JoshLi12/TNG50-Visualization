@@ -147,9 +147,15 @@ class MainWindow(QMainWindow):
 
     def display_origin(self):
         self.plotter.clear()
+
+        if hasattr(self, "_camera_callback_tag"):
+            cam = self.plotter.renderer.GetActiveCamera()
+            cam.RemoveObserver(self._camera_callback_tag)
+            del self._camera_callback_tag
+
         self.current_map = 1
         # self.activate_all_origins()
-
+        coords_all = self.data['coords']
         tag_colors = {
             1: [1.0, 0.2, 0.2, 0.6],  # Red (Main Progenitor)
             2: [0.2, 0.8, 0.2, 0.8],  # Green (FoF)
@@ -167,7 +173,7 @@ class MainWindow(QMainWindow):
             visible_mask |= tags == 3
 
         # Filter coords and velocities
-        coords = self.data['coords'][visible_mask]
+        coords = coords_all[visible_mask]
         tags = tags[visible_mask]
 
         # Build RGBA array from tag_colors
@@ -201,8 +207,8 @@ class MainWindow(QMainWindow):
         
 
         # Load full data
-        coords_all, rot_matrix = get_galaxy_coords(self.base_path, self.subfind_id)
-        velocities_all = get_galaxy_vel(self.base_path, self.subfind_id, rot_matrix)
+        coords_all = self.data['coords']
+        velocities_all = self.data['velocity_magnitude']
         tags = self.data['origin_tags'].astype(int)
 
 
@@ -219,7 +225,6 @@ class MainWindow(QMainWindow):
         coords = coords_all[visible_mask]
         velocities = velocities_all[visible_mask]
         print(len(coords))
-        print(len(velocities))
 
         if len(coords) == 0:
             print("No origin types selected — nothing to display.")
@@ -269,8 +274,6 @@ class MainWindow(QMainWindow):
         self._update_timer.timeout.connect(_update_velocity_colors)
 
         def on_camera_move(caller, event):
-            print("Coords length:", len(coords))
-            print("Velocities length:", len(velocities))
             self._update_timer.start(5)
 
         self.plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
