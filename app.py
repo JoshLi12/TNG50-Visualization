@@ -124,15 +124,7 @@ class MainWindow(QMainWindow):
             self.display_origin()
         elif self.current_map == 2:
             self.display_velocity()
-    
-    # def fof_click(self):
-    #     if self.fof_btn.isChecked():
-    #         self.visible_mask |= self.tags == 2
-    #     if self.current_map == 1:
-    #         self.display_origin()
-    #     elif self.current_map == 2:
-    #         self.display_velocity()
-        
+
 
     def activate_all_origins(self):
         self.progenitor_btn.setChecked(True)
@@ -146,44 +138,41 @@ class MainWindow(QMainWindow):
         self.display_origin()
 
     def display_origin(self):
+        self.plotter.reset_camera()
         self.plotter.clear()
-
-        if hasattr(self, "_camera_callback_tag"):
-            cam = self.plotter.renderer.GetActiveCamera()
-            cam.RemoveObserver(self._camera_callback_tag)
-            del self._camera_callback_tag
 
         self.current_map = 1
         # self.activate_all_origins()
-        coords_all = self.data['coords']
         tag_colors = {
             1: [1.0, 0.2, 0.2, 0.6],  # Red (Main Progenitor)
             2: [0.2, 0.8, 0.2, 0.8],  # Green (FoF)
             3: [0.4, 0.4, 1.0, 0.8],  # Blue (External)
         }
 
-        tags = self.data['origin_tags'].astype(int)
+        coords_all = self.data['coords']
+        tags_all = self.data['origin_tags'].astype(int)
 
-        visible_mask = np.zeros(len(tags), dtype=bool)
+        visible_mask = np.zeros(len(tags_all), dtype=bool)
         if self.progenitor_btn.isChecked():
-            visible_mask |= tags == 1
+            visible_mask |= tags_all == 1
         if self.fof_btn.isChecked():
-            visible_mask |= tags == 2
+            visible_mask |= tags_all == 2
         if self.external_btn.isChecked():
-            visible_mask |= tags == 3
+            visible_mask |= tags_all == 3
 
         # Filter coords and velocities
         coords = coords_all[visible_mask]
-        tags = tags[visible_mask]
+        tags = tags_all[visible_mask]
 
         # Build RGBA array from tag_colors
         rgba_colors = np.array([tag_colors.get(t, [0, 0, 0, 0]) for t in tags], dtype='f4')
+        cloud = pv.PolyData(coords)
 
         print(len(coords))
 
         if len(coords) > 0:
             self.plotter.add_points(
-                coords,
+                cloud,
                 scalars=rgba_colors,
                 rgba=True,
                 render_points_as_spheres=True,
@@ -204,6 +193,8 @@ class MainWindow(QMainWindow):
         self.current_map = 2
         self.plotter.clear()
         # self.activate_all_origins()
+        if self.current_map != 2:
+            return
         
 
         # Load full data
@@ -243,7 +234,8 @@ class MainWindow(QMainWindow):
         # custom_cmap = matplotlib.colormaps['coolwarm']
 
         vmin, vmax = np.percentile(v_rad, [5, 95])  # Exclude outliers
-
+        
+        
 
         self.plotter.add_points(
             cloud,
@@ -254,17 +246,22 @@ class MainWindow(QMainWindow):
             show_scalar_bar=False,
             clim=[vmin, vmax]
         )
+        self._velocity_cloud = cloud
+        self._velocity_mesh = cloud  
+        self._visible_velocities = velocities
+
         self.plotter.add_scalar_bar(title="Radial Velocity (km/s)", color='white')
         self.plotter.reset_camera()
 
         # Timer and update function
 
         def _update_velocity_colors():
-            view_vector = self.plotter.camera.direction
-            v_rad = compute_rvel(velocities, view_vector)
 
-            cloud['v_radial'] = v_rad
-            self.plotter.update_scalars(v_rad, render=True)
+            view_vector = self.plotter.camera.direction
+            v_rad = compute_rvel(self._visible_velocities, view_vector)
+
+            self._velocity_cloud['v_radial'] = v_rad
+            self.plotter.update_scalars(v_rad, render=True, mesh=self._velocity_mesh)
 
             p = np.percentile(v_rad, [1, 50, 99])
             print("v_rad percentiles (1%, 50%, 99%):", p)
@@ -276,7 +273,8 @@ class MainWindow(QMainWindow):
         def on_camera_move(caller, event):
             self._update_timer.start(5)
 
-        self.plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
+        # self.plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
+        self._camera_callback_tag = self.plotter.renderer.GetActiveCamera().AddObserver("ModifiedEvent", on_camera_move)
 
 
 
