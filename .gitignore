@@ -11,3 +11,5 @@ cutouts/
 galaxy_render_base/
 sample_models/
 TNG50-Visualization.git/
+tng50env/
+Particles_starter.py

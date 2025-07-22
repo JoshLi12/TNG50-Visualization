@@ -20,7 +20,8 @@ from multiprocessing import Process, Pipe
 import requests
 import h5py
 
-bp_data = r"N:\TNG50"   # Mounted drive with illustris_python and data
+# bp_data = r"N:\TNG50"   # Mounted drive with illustris_python and data
+bp_data = r"N:\TNG50"
 print("Base path exists?", os.path.exists(bp_data))
 print("Code folder exists?", os.path.exists(os.path.join(bp_data, "code")))
 
