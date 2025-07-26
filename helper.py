@@ -305,7 +305,9 @@ def get_galaxy_met(dest, subfind_id):
         metallicity = f['PartType4']['GFM_Metallicity'][:]
 
     log_metallicity = np.log10(metallicity / metsun + 1e-5)
-    log_metallicity = np.clip(log_metallicity, -2, 1)
+    # log_metallicity = np.clip(log_metallicity, -2, 1)
+    log_metallicity = np.clip(log_metallicity, -1.5, 0.5)
+
     norm = (log_metallicity - log_metallicity.min()) / (log_metallicity.max() - log_metallicity.min())
     return norm, log_metallicity
 

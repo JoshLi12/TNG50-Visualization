@@ -279,9 +279,24 @@ class MainWindow(QMainWindow):
 
 
     def display_metallicity(self):
+        self.current_map = 3
         self.plotter.clear()
         cloud = pv.PolyData(self.data['coords'])
         cloud['logZ'] = self.data['met']  # use log metallicity values from helper.py
+
+        tags = self.data['origin_tags'].astype(int)
+
+
+        visible_mask = np.zeros(len(tags), dtype=bool)
+        if self.progenitor_btn.isChecked():
+            visible_mask |= tags == 1
+        if self.fof_btn.isChecked():
+            visible_mask |= tags == 2
+        if self.external_btn.isChecked():
+            visible_mask |= tags == 3
+        
+        coords = coords_all[visible_mask]
+        velocities = velocities_all[visible_mask]
 
         colors = ['#2c7bb6', 'white', '#d7191c']  # blue–white–red
         custom_cmap = LinearSegmentedColormap.from_list("radial_cmap", colors)
@@ -293,7 +308,10 @@ class MainWindow(QMainWindow):
             point_size=2.0,
             show_scalar_bar=False
         )
-        self.plotter.add_scalar_bar(title="[Z/Z☉] (log scale)")
+        self.plotter.add_scalar_bar(
+            title='(Z/Z☉) (log scale)',
+            color='white',
+        )
         self.plotter.reset_camera()
 
 if __name__ == '__main__':

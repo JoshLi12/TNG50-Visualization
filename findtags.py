@@ -24,9 +24,6 @@ def loadIDsSubhalos(SubfindID):
         subfindIDs=f1['SubfindID'][sStart:sStart+sLen]
     return (particleIDs,snapNums,subfindIDs,groupIDs)
 
-
-
-
 def getMergerTrees(subfindID0, basePath,snapNum0):
     """
     Returns a tuple containing 
