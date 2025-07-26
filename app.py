@@ -101,6 +101,8 @@ class MainWindow(QMainWindow):
 
         self.origin_btn.clicked.connect(self.origin_clicked)
         self.velocity_btn.clicked.connect(self.velocity_clicked)
+        self.metallicity_btn.clicked.connect(self.met_clicked)
+
 
         # Initial render
         self.display_origin()
@@ -124,6 +126,8 @@ class MainWindow(QMainWindow):
             self.display_origin()
         elif self.current_map == 2:
             self.display_velocity()
+        elif self.current_map == 3:
+            self.display_metallicity()
 
 
     def activate_all_origins(self):
@@ -188,6 +192,12 @@ class MainWindow(QMainWindow):
         self.fof_btn.setChecked(True)
         self.external_btn.setChecked(True)
         self.display_velocity()
+    
+    def met_clicked(self):
+        self.progenitor_btn.setChecked(True)
+        self.fof_btn.setChecked(True)
+        self.external_btn.setChecked(True)
+        self.display_metallicity()
 
     def display_velocity(self):
         self.current_map = 2
@@ -281,8 +291,10 @@ class MainWindow(QMainWindow):
     def display_metallicity(self):
         self.current_map = 3
         self.plotter.clear()
-        cloud = pv.PolyData(self.data['coords'])
-        cloud['logZ'] = self.data['met']  # use log metallicity values from helper.py
+        coords_all = self.data['coords']
+        # cloud = pv.PolyData(self.data['coords'])
+        # cloud['logZ'] = self.data['met']  # use log metallicity values from helper.py
+        met_all = self.data['met']
 
         tags = self.data['origin_tags'].astype(int)
 
@@ -296,9 +308,19 @@ class MainWindow(QMainWindow):
             visible_mask |= tags == 3
         
         coords = coords_all[visible_mask]
-        velocities = velocities_all[visible_mask]
+        met = met_all[visible_mask]
 
-        colors = ['#2c7bb6', 'white', '#d7191c']  # blue–white–red
+        if len(coords) == 0:
+            print("No origin types selected — nothing to display.")
+            return
+
+        cloud = pv.PolyData(coords)
+        cloud['logZ'] = met
+
+        
+
+
+        colors = ["#7719aa", 'white', "#41c623"]  # blue–white–red
         custom_cmap = LinearSegmentedColormap.from_list("radial_cmap", colors)
         self.plotter.add_points(
             cloud,
