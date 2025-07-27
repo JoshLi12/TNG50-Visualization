@@ -176,6 +176,8 @@ class MainWindow(QMainWindow):
         print(f"Loading new galaxy: {self.subfind_id}")        
 
         self.data = load_galaxy_data(self.base_path, self.subfind_id)
+        self.input_box.clear()
+
         self.display_origin()
 
     def progenitor_click(self):
@@ -331,7 +333,6 @@ class MainWindow(QMainWindow):
             self.plotter.update_scalars(v_rad, render=True, mesh=self._velocity_mesh)
 
             p = np.percentile(v_rad, [1, 50, 99])
-            print("v_rad percentiles (1%, 50%, 99%):", p)
         
         self._update_timer = QTimer()
         self._update_timer.setSingleShot(True)
