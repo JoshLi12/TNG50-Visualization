@@ -48,6 +48,8 @@ class MainWindow(QMainWindow):
 
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setAlignment(Qt.AlignTop)
+        
+        sidebar_layout.addSpacing(30)
 
     
         self.origin_btn = QPushButton("Stellar Origin")
@@ -56,6 +58,7 @@ class MainWindow(QMainWindow):
         self.progenitor_btn = QPushButton("Main Progenitor")
         self.fof_btn = QPushButton("Friends of Friends")
         self.external_btn = QPushButton("External")
+
 
         # Galaxy input section
         input_section = QVBoxLayout()
@@ -67,7 +70,6 @@ class MainWindow(QMainWindow):
         self.input_box = QLineEdit()
         self.input_box.setPlaceholderText("e.g. 333426")
         input_section.addWidget(self.input_box)
-        self.input_box.setContentsMargins(0, 0, 0, 0)
 
 
         # self.load_galaxy_button = QPushButton("Load Galaxy")
@@ -78,13 +80,15 @@ class MainWindow(QMainWindow):
         
         input_section.addWidget(self.input_box)
         # input_section.addWidget(self.load_galaxy_button)
-
+        input_section.addSpacing(10)
         view_section = QVBoxLayout()
         view_label = QLabel("View Modes")
         view_section.addWidget(view_label)
         view_section.addWidget(self.origin_btn)
         view_section.addWidget(self.velocity_btn)
         view_section.addWidget(self.metallicity_btn)
+
+        view_section.addSpacing(30)
 
         tag_label = QLabel("Tag Filters")
         tag_section = QVBoxLayout()
@@ -99,6 +103,8 @@ class MainWindow(QMainWindow):
             btn.setChecked(True)  # Show all by default
             btn.clicked.connect(self.progenitor_click)
             tag_section.addWidget(btn)
+        tag_section.addSpacing(30)
+
 
 
         self.exit_btn = QPushButton("Exit")
@@ -106,7 +112,7 @@ class MainWindow(QMainWindow):
         # sidebar.addWidget(self.exit_btn)
         
         exit_section = QVBoxLayout()
-        exit_section.addSpacing(10)
+        # exit_section.addSpacing(10)
         exit_section.addWidget(self.exit_btn)
 
         for section in [input_section, view_section, tag_section, exit_section]:
@@ -148,6 +154,9 @@ class MainWindow(QMainWindow):
         self.origin_btn.clicked.connect(self.origin_clicked)
         self.velocity_btn.clicked.connect(self.velocity_clicked)
         self.metallicity_btn.clicked.connect(self.met_clicked)
+
+        self.plotter.add_axes(interactive=False)
+
 
 
         # Initial render
