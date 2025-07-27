@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QVBoxLayout, QLineEdit
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QVBoxLayout, QLineEdit, QLabel, QFrame
 )
 from PyQt5.QtCore import Qt, QSize
 from pyvistaqt import QtInteractor
@@ -41,10 +41,14 @@ class MainWindow(QMainWindow):
 
 
         # Sidebar (vertical taskbar on the left)
-        sidebar = QVBoxLayout()
-        sidebar.setSpacing(1)  # Optional: spacing between buttons
-        sidebar_widget = QWidget()
-        sidebar_widget.setLayout(sidebar)
+        # sidebar = QVBoxLayout()
+        # sidebar.setSpacing(1)  # Optional: spacing between buttons
+        # sidebar_widget = QWidget()
+        # sidebar_widget.setLayout(sidebar)
+
+        sidebar_layout = QVBoxLayout()
+        sidebar_layout.setAlignment(Qt.AlignTop)
+
     
         self.origin_btn = QPushButton("Stellar Origin")
         self.velocity_btn = QPushButton("Velocity")
@@ -53,28 +57,69 @@ class MainWindow(QMainWindow):
         self.fof_btn = QPushButton("Friends of Friends")
         self.external_btn = QPushButton("External")
 
-        # self.galaxy_input = QLineEdit()
-        # self.galaxy_input.setPlaceholderText("Enter Galaxy ID")
-        # self.load_btn = QPushButton("Load Galaxy")
-        # self.load_btn.clicked.connect(self.load_new_galaxy)
+        # Galaxy input section
+        input_section = QVBoxLayout()
 
-        # sidebar.addWidget(self.galaxy_input)
-        # sidebar.addWidget(self.load_btn)
+        # sidebar_widget.setFixedWidth(220)
+        input_label = QLabel("Galaxy Input")
+        input_section.addWidget(input_label)
 
+        self.input_box = QLineEdit()
+        self.input_box.setPlaceholderText("e.g. 333426")
+        input_section.addWidget(self.input_box)
 
-        for btn in [self.origin_btn, self.velocity_btn, self.metallicity_btn, self.progenitor_btn, self.fof_btn, self.external_btn]:
-            sidebar.addWidget(btn)
+        self.load_galaxy_button = QPushButton("Load Galaxy")
+        self.load_galaxy_button.clicked.connect(self.load_new_galaxy)
+
         
+        input_section.addWidget(self.input_box)
+        input_section.addWidget(self.load_galaxy_button)
+
+        view_section = QVBoxLayout()
+        view_label = QLabel("View Modes")
+        view_section.addWidget(view_label)
+        view_section.addWidget(self.origin_btn)
+        view_section.addWidget(self.velocity_btn)
+        view_section.addWidget(self.metallicity_btn)
+
+        tag_label = QLabel("Tag Filters")
+        tag_section = QVBoxLayout()
+
+
+
+        # for btn in [self.origin_btn, self.velocity_btn, self.metallicity_btn, self.progenitor_btn, self.fof_btn, self.external_btn]:
+        #     sidebar.addWidget(btn)
+        tag_section.addWidget(tag_label)
         for btn in [self.progenitor_btn, self.fof_btn, self.external_btn]:
             btn.setCheckable(True)
             btn.setChecked(True)  # Show all by default
             btn.clicked.connect(self.progenitor_click)
-            sidebar.addWidget(btn)
+            tag_section.addWidget(btn)
+
+
+        self.exit_btn = QPushButton("Exit")
+        self.exit_btn.clicked.connect(self.close)  # `self.close` is built-in from QMainWindow
+        # sidebar.addWidget(self.exit_btn)
+        
+        exit_section = QVBoxLayout()
+        exit_section.addSpacing(10)
+        exit_section.addWidget(self.exit_btn)
+
+        for section in [input_section, view_section, tag_section, exit_section]:
+            group = QFrame()
+            group.setLayout(section)
+            sidebar_layout.addWidget(group)
 
         # Metallicity Map
+        sidebar_container = QWidget()
+        sidebar_container.setLayout(sidebar_layout)
+        sidebar_container.setFixedWidth(250)
 
-        main_layout.addWidget(sidebar_widget)
+        main_layout.addWidget(sidebar_container)
         main_layout.addWidget(self.plotter.interactor)
+
+        
+
         
 
         self.setCentralWidget(main_widget)
@@ -94,10 +139,7 @@ class MainWindow(QMainWindow):
         self.plotter.camera.zoom(15)  # >1 zooms in, <1 zooms out
         self.plotter.view_xy()
         self.plotter.enable_trackball_style()
-
-        self.exit_btn = QPushButton("Exit")
-        self.exit_btn.clicked.connect(self.close)  # `self.close` is built-in from QMainWindow
-        sidebar.addWidget(self.exit_btn)
+        self.angle_text = self.plotter.add_text("View: initializing...", position='upper_left', font_size=10, color='purple')
 
         self.origin_btn.clicked.connect(self.origin_clicked)
         self.velocity_btn.clicked.connect(self.velocity_clicked)
@@ -111,15 +153,19 @@ class MainWindow(QMainWindow):
 
         
     def load_new_galaxy(self):
-        user_input = self.galaxy_input.text().strip()
-        if not user_input.isdigit():
+        text = self.input_box.text()
+        if not text.isdigit():
             print("Invalid Subfind ID.")
             return
 
-        self.subfind_id = int(user_input)
+        self.subfind_id = int(text)
         print(f"Loading new galaxy: {self.subfind_id}")
 
+        self.plotter.reset_camera()
+        self.plotter.clear()
+
         self.data = load_galaxy_data(self.base_path, self.subfind_id)
+        self.display_origin()
 
     def progenitor_click(self):
         if self.current_map == 1:
@@ -316,9 +362,6 @@ class MainWindow(QMainWindow):
 
         cloud = pv.PolyData(coords)
         cloud['logZ'] = met
-
-        
-
 
         colors = ["#7719aa", 'white', "#41c623"]  # blue–white–red
         custom_cmap = LinearSegmentedColormap.from_list("radial_cmap", colors)
