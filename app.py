@@ -61,19 +61,23 @@ class MainWindow(QMainWindow):
         input_section = QVBoxLayout()
 
         # sidebar_widget.setFixedWidth(220)
-        input_label = QLabel("Galaxy Input")
+        input_label = QLabel("Load Galaxy ID")
         input_section.addWidget(input_label)
 
         self.input_box = QLineEdit()
         self.input_box.setPlaceholderText("e.g. 333426")
         input_section.addWidget(self.input_box)
+        self.input_box.setContentsMargins(0, 0, 0, 0)
 
-        self.load_galaxy_button = QPushButton("Load Galaxy")
-        self.load_galaxy_button.clicked.connect(self.load_new_galaxy)
+
+        # self.load_galaxy_button = QPushButton("Load Galaxy")
+        # self.load_galaxy_button.clicked.connect(self.load_new_galaxy)
+        self.input_box.returnPressed.connect(self.load_new_galaxy)
+
 
         
         input_section.addWidget(self.input_box)
-        input_section.addWidget(self.load_galaxy_button)
+        # input_section.addWidget(self.load_galaxy_button)
 
         view_section = QVBoxLayout()
         view_label = QLabel("View Modes")
@@ -153,16 +157,14 @@ class MainWindow(QMainWindow):
 
         
     def load_new_galaxy(self):
+        self.plotter.clear()
         text = self.input_box.text()
         if not text.isdigit():
             print("Invalid Subfind ID.")
             return
 
         self.subfind_id = int(text)
-        print(f"Loading new galaxy: {self.subfind_id}")
-
-        self.plotter.reset_camera()
-        self.plotter.clear()
+        print(f"Loading new galaxy: {self.subfind_id}")        
 
         self.data = load_galaxy_data(self.base_path, self.subfind_id)
         self.display_origin()
